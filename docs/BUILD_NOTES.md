@@ -1,147 +1,197 @@
 # alpine-watch-dbt — Build Notes
 
-*For future Brooks. Written after finishing the first full green build, August 2026.*
+*For future Brooks. Updated after adding the Sierra Nevada streamflow pipeline, August 2026.*
 
 ## Why this exists
 
-You had two gaps against the Weyerhaeuser Data Engineer posting: **dbt** and
-**Snowflake**, with Terraform needing a refresher. Airflow experience covered
-the orchestration requirement — ADF is a syntax change on the same concepts.
-Rather than do three separate tutorials, we built one real project that hits
-all three, using ALPINE-WATCH's own 13-lake water quality data as the source
-so you were modeling something you already understood instead of a toy
-dataset.
+Two gaps against the Weyerhaeuser Data Engineer posting: **dbt** and
+**Snowflake**, plus a Terraform refresher. Airflow experience already covers
+orchestration — ADF is a syntax change on the same concepts. Rather than do
+tutorials, we built one real project against data you already understood,
+then a second pipeline against much denser data once the first one exposed
+how sparse WQP grab samples actually are.
 
 Repo: `github.com/bdgroves/alpine-watch-dbt`
 
-## What we actually built
+## What we actually built — now two pipelines, one warehouse
 
 ```
+Pipeline 1: Lake water quality (sparse, grab samples)
 USGS WQP (bbox query per lake, 4 characteristics)
       │
-      │  load/ingest_wqp.py  — dataretrieval-python, stage + COPY INTO
       ▼
-BRONZE.WQP_RESULTS_RAW        — VARIANT, append-only, never mutated
+BRONZE.WQP_RESULTS_RAW → staging → SILVER.FCT_LAKE_MEASUREMENTS
+      13 lakes, 1,417 rows total
+
+Pipeline 2: Sierra Nevada streamflow (dense, continuous telemetry)
+USGS Water Data API — waterdata.get_continuous(), 15-min intervals
       │
-      │  dbt staging          — flatten, dedupe, type cast
       ▼
-STAGING.STG_WQP_RESULTS
-      │
-      │  dbt silver           — incremental merge, 3-day lookback
-      ▼
-SILVER.FCT_LAKE_MEASUREMENTS  — 1,417 rows, 13 lakes, 4 characteristics
-SILVER.DIM_LAKES              — 13-row curated dimension
+BRONZE.STREAMFLOW_CONTINUOUS_RAW → staging → SILVER.FCT_STREAMFLOW
+      6 gages × 3 parameters, ~120,000 rows, 90-day window
 ```
 
-Infrastructure (warehouse, database, schema, role, grants) is Terraform-
-managed. Auth is key-pair (JWT), not password. Everything runs through pixi
-so the environment is reproducible — same pattern as your other projects.
+Both pipelines share one Terraform-provisioned warehouse, database, and
+`TRANSFORMER` role — the second pipeline needed **zero new infrastructure**,
+because the original grant was scoped at the `BRONZE` schema level, not
+per-table. That's the payoff of doing the permissions model properly the
+first time.
 
-## The build log — what actually happened
+## The build log — pipeline 2 additions
 
-This is the part worth rereading before an interview. None of this was a
-clean first-try tutorial; every fix below is a real bug you can talk about.
+1. **Found the real gages** — not guessed. Web-searched and verified six
+   currently-active USGS site numbers spanning Merced, Tuolumne, and
+   Stanislaus rivers, mirroring ALPINE-WATCH's own alpine-anchor /
+   valley-comparison pairing logic (Odell vs. Waldo → Happy Isles vs.
+   Pohono Bridge, etc.).
 
-1. **Environment setup** — GitHub repo pushed from Windows via git (not the
-   iPad drag-and-drop approach, which turned out unreliable for nested
-   folders). pixi installed the dbt/Snowflake toolchain locally.
+2. **Caught an API migration before building on the wrong thing.** USGS is
+   retiring the legacy NWIS WaterServices API (the one `dataretrieval.nwis`
+   is built on) — full decommission Q1 2027, degradation possibly starting
+   as early as this month. Built against the new `waterdata` module instead,
+   which `dataretrieval-python` added specifically as the migration target.
+   Worth naming in an interview: *"I checked whether the API I was about to
+   depend on was stable before committing to it."*
 
-2. **Snowflake key-pair auth** — generated an encrypted RSA key pair with
-   OpenSSL (via Git Bash, since Windows PowerShell doesn't ship OpenSSL),
-   registered the public key against your Snowflake user with
-   `ALTER USER ... SET RSA_PUBLIC_KEY`. This is the auth pattern real
-   production pipelines use — password auth is being phased out industry-wide.
+3. **Designed around uncertainty differently than pipeline 1.** The WQP
+   pipeline trusted the API's raw column names and got bitten by the
+   unit_code guess. This time, the loader inspects `df.columns` at runtime
+   and normalizes into a schema we define ourselves *before* it reaches
+   Snowflake — bronze holds a contract we control, not a pass-through of an
+   external API's naming choices.
 
-3. **Terraform provider auth mismatch** — the Snowflake Terraform provider
-   defaults to password auth unless you explicitly set
-   `authenticator = "SNOWFLAKE_JWT"` plus `private_key` (file *contents*,
-   not a path) and `private_key_passphrase`. Silent trap — the error message
-   ("password is empty") doesn't obviously point at the fix.
+4. **`COPY INTO` rowcount is not what it looks like.** The loader reported
+   "loaded 1 rows" despite 120,820 records actually landing correctly.
+   `cur.rowcount` after a `COPY INTO` reflects rows-per-source-file, not
+   total data rows — a reporting quirk, not data loss. Confirmed by building
+   the models and seeing real counts; the WQP loader has the identical
+   latent bug, just never surfaced because nobody looked closely.
 
-4. **Role hierarchy gap** — `SYSADMIN` can't `CREATE ROLE` by default; that's
-   `SECURITYADMIN`'s job. Fixed by using `ACCOUNTADMIN` (fine for a
-   single-user trial; wrong answer on a real team, where you'd request the
-   specific grant instead of reaching for the top role).
+5. **Ambiguous column name in an ad-hoc query.** `fct_streamflow` already
+   carries `gage_name` (joined in during the model build) — re-joining
+   `dim_gages` in a follow-up query created two columns with the same name.
+   Small, but a good example of forgetting your own model's grain.
 
-5. **The architecture rethink** — this was the real lesson. The original
-   design assumed ALPINE-WATCH pulled data by fixed USGS station ID. Reading
-   the actual `fetch_lakes.py` showed it queries by **lat/lon bounding box**
-   per lake instead — a lake's identity comes from which query returned the
-   record, not from any field in the data. Had to rework `dim_lakes`, the
-   staging model, and the fact table's join key from `station_id` to
-   `lake_id`. This is the single best interview story from the whole
-   project: *"I found my assumed schema didn't match the real source system,
-   and reworked the join key rather than forcing bad data through."*
+6. **One gage returned zero data across all three parameters** — Long Barn
+   (11298000). Not investigated yet; the source citation for that gage was
+   a 2013 report, so it may simply be inactive now. Left as a real "no data"
+   state rather than chased down, same posture as ALPINE-WATCH's own
+   no-data lakes.
 
-6. **Real WQP data quality issues, found by tests actually failing:**
-   - **1,257 duplicate `measurement_sk` values** — WQP sends real duplicates
-     (lab replicates, multi-org submissions) for the same
-     station/date/characteristic/unit. Fixed with `qualify row_number()`
-     in staging, keeping one deterministically.
-   - **Unit casing wrong** — assumed `ug/l`, actual data has `ug/L`.
-   - **A whole unit family missed** — `RFU` (relative fluorescence units),
-     how some sensors report chlorophyll instead of lab-derived µg/L.
-   - **A second unit for phosphorus** — `ppb` alongside `mg/L`. Flagged but
-     not fixed (see "left undone" below) — this is a downstream conversion
-     problem, not a data quality one.
+## What Snowflake and dbt actually do differently
 
-7. **Tooling friction, for the résumé-adjacent "I can debug my own
-   environment" pile:** PowerShell here-string escaping corrupted a SQL
-   file (`@"..."@` interprets backslash-quote; `@'...'@` doesn't) — a good
-   example of environment-specific gotchas that don't show up until you hit
-   them. `dbt show --select` vs `--inline` — select wants a model name, not
-   raw SQL.
+You asked the honest question — what does this stack give you that your
+existing Python/pandas/GitHub Actions workflow doesn't? Real answer, not a
+sales pitch:
 
-## Mapping to the Weyerhaeuser posting
+**Storage and compute are separate.** Your JSON-file pipelines (ALPINE-WATCH,
+AFTERSHOCK, etc.) run compute and storage as one thing — a GitHub Actions
+runner writes files to a repo. Snowflake's warehouse (compute) and database
+(storage) are billed and scaled completely independently. You can resize a
+warehouse from XSMALL to XLARGE for one heavy query and back down, with zero
+data movement — trying that with files-on-disk means literally moving data.
 
-| Posting requirement | Where you now have it |
-|---|---|
-| Python + SQL | Already had it. `ingest_wqp.py`, every model. |
-| ADF / comparable orchestration | Airflow (existing) + this project's dbt/pixi orchestration concepts transfer directly. |
-| **dbt** — materializations, tests, docs, history | View/table/incremental all used with reasoning for each. 16 generic tests + 1 singular business-rule test. `dbt docs` lineage graph. |
-| **Snowflake** — loading, RBAC, cost-aware design | `COPY INTO` bulk load (not row inserts), `TRANSFORMER` role scoped to exactly what it needs, `auto_suspend`/`auto_resume` on the warehouse. |
-| Incremental/delta patterns — watermarking, CDC, backfills | `is_incremental()` + merge on surrogate key + 3-day lookback window for late-arriving lab results. Idempotent — a backfill is just a full-refresh run. |
-| Terraform | Real refresher: provider auth, role hierarchy, resource/variable/output split, all against a real target instead of a tutorial sandbox. |
-| Data quality, monitoring | `dbt source freshness`, generic + singular tests, all of which caught *real* issues in this build (see above). |
-| Geospatial exposure (preferred) | The whole bbox/lat-lon join rework *is* geospatial reasoning, even without PostGIS-style functions. Worth naming explicitly in an interview. |
-| Git/PR/CI-CD | Repo pushed, `.github/workflows/dbt.yml` scaffolded (not yet wired to secrets — see below). |
-| AI-assisted development | This whole project. Worth being straightforward about in an interview — the posting explicitly wants this, not something to downplay. |
+**Transformation becomes tested, documented, version-controlled software**,
+not a script that runs and hopes. Your existing pattern is a Python script
+that computes something and writes JSON. dbt models are SQL with an explicit
+dependency graph (`ref()`), automatic execution ordering, and tests that
+fail loudly the moment reality stops matching assumptions — which is exactly
+what caught the WQP duplicates, the bad unit casing, and the join-key bug in
+this project. A plain script would have just silently produced wrong numbers.
 
-**Still a real gap:** SAP source ingestion — nothing substitutes for this,
-probably fine to just not have. Iceberg table structures — untouched.
-Streaming/near-real-time (Event Hubs/Kafka) — untouched, and this project's
-twice-weekly batch cadence is intentionally the opposite of that pattern.
+**Semi-structured data lives natively in the warehouse.** The `VARIANT`
+type let us dot-path into raw JSON (`payload:MonitoringLocationIdentifier`)
+directly in SQL, no separate flattening step before it's queryable. Your
+current pattern parses JSON in Python before anything touches a database.
 
-## Left undone on purpose (not urgent, listed so it doesn't nag)
+**Incremental logic is a declared strategy, not hand-rolled control flow.**
+`materialized='incremental'` + `unique_key` + `merge` replaces what would
+otherwise be manually-written "check if it exists, then update or insert"
+Python logic — and it composes with the dependency graph automatically.
 
-- Phosphorus unit conversion (`ppb` → `mg/L`) for cross-lake comparability —
-  belongs in a downstream mart, not silver.
-- `relationships` test deprecation warning — needs args nested under
-  `arguments:` per newer dbt schema. Cosmetic today, will become a hard
-  error eventually.
-- GitHub Actions workflow exists but isn't wired to Snowflake secrets yet —
-  currently everything runs by hand.
-- `--defer` for slim CI — needs a prod target to defer against, which
-  doesn't exist yet.
+**Two things we haven't touched yet, worth knowing exist:** Time Travel
+(query any table as of any point in the last N days, or `UNDROP` something
+you deleted by accident — no backup system required) and zero-copy cloning
+(instantly clone an entire database for testing without duplicating storage).
+Neither has a real equivalent in a file-based pipeline.
 
-## Quick reference for picking this back up
+## Left undone (not urgent, listed so it doesn't nag)
+
+- `COPY INTO` rowcount reporting bug in both loaders — cosmetic (logs a
+  wrong number), doesn't affect correctness. Worth understanding the fix,
+  not high priority.
+- Long Barn gage (11298000) — check `waterdata.get_monitoring_locations()`
+  to see if it's inactive or just miscoded.
+- `relationships` and `freshness` deprecation warnings — dbt schema syntax
+  changes, will become hard errors eventually.
+- Phosphorus unit conversion (`ppb` → `mg/L`) for cross-lake comparability.
+- GitHub Actions workflow exists but isn't wired to secrets yet — everything
+  still runs by hand.
+- `LOOKBACK_DAYS = 90` in the streamflow loader — these gages have records
+  back to 1915; widening this is the real test of the incremental merge at
+  historical scale.
+- `--defer` for slim CI — needs a prod target to defer against.
+
+## TODO — skills to build, now spanning both pipelines
+
+**Snowflake**
+- [ ] Warehouse sizing & auto-suspend — understand *why* XSMALL/60s were
+      reasonable defaults here, not just that they worked
+- [ ] Query profile — run something slow on purpose (try an unfiltered scan
+      of `fct_streamflow`, 120K rows is enough to see a real profile), read
+      the bottleneck step
+- [ ] Role hierarchy — the full `ACCOUNTADMIN` → `SECURITYADMIN`/`SYSADMIN`
+      → custom role tree, so the `CREATE ROLE` wall never surprises you again
+- [ ] Time Travel / `UNDROP` — try it on purpose against a throwaway table
+- [ ] Streams + Tasks — Snowflake's native CDC primitives; directly relevant
+      since the posting names CDC explicitly
+- [ ] Zero-copy cloning — clone `ALPINE_WATCH` into a scratch database,
+      see what it costs (should be near-instant, near-free)
+
+**dbt**
+- [ ] Fix the `relationships` deprecation yourself — nest args under
+      `arguments:` in both `_models.yml` files
+- [ ] Fix the `freshness` deprecation — move it under `config:` per the
+      warning
+- [ ] Write one more singular test from scratch, unaided
+- [ ] `dbt docs generate` — actually read the lineage graph now that there
+      are two pipelines to see side by side in it
+- [ ] Try a *different* incremental strategy (`delete+insert`) on a copy of
+      `fct_streamflow`, compare behavior against `merge`
+- [ ] Exposures — document that a model "feeds a dashboard," even
+      hypothetically
+
+**Terraform**
+- [ ] Remote state — read how S3/Azure backend + locking works, even without
+      implementing it (local state is fine solo, wrong for a team)
+- [ ] `terraform destroy` on a throwaway resource, on purpose
+
+**This project specifically**
+- [ ] Investigate Long Barn's zero-data result
+- [ ] Set `$env:API_USGS_PAT` permanently via `setx`
+- [ ] Widen `LOOKBACK_DAYS` and watch the incremental merge handle real scale
+- [ ] Wire GitHub Actions secrets so both `pixi run ingest*` + `build`
+      actually run on a schedule instead of by hand
+
+## Quick reference
 
 ```powershell
 cd C:\Users\brook\Documents\alpine-watch-dbt
 
-# per-session, since $env: vars don't persist across PowerShell windows
 $env:SNOWFLAKE_ACCOUNT = "AMEJZES-CAB92741"
 $env:SNOWFLAKE_USER = "BDGROVES"
 $env:SNOWFLAKE_PRIVATE_KEY_PATH = "C:\Users\brook\.snowflake\keys\rsa_key.p8"
 $env:SNOWFLAKE_PRIVATE_KEY_PASSPHRASE = "<the one you set>"
+$env:API_USGS_PAT = "<your USGS key>"
 
-pixi run dbt debug   # confirm connection still works
-pixi run ingest      # re-pull from WQP (few minutes, rate-limited)
-pixi run build        # dbt build: staging + fact + all tests
-pixi run docs         # browsable lineage graph
+pixi run dbt debug        # confirm connection
+pixi run ingest            # re-pull WQP lake data
+pixi run ingest-streamflow # re-pull streamgage data
+pixi run build              # dbt build: both pipelines + all tests
+pixi run docs                # browsable lineage graph, now with 2 pipelines
 ```
 
-Snowflake trial: **30 days from Aug 12, 2026** — $400 credit, essentially
-unusable to burn through at this scale. Worth checking before it lapses
-whether continuing past the trial is worth it, or whether this project has
-done its job as a portfolio/skill-building piece by then.
+Snowflake trial: **30 days from Aug 12, 2026** — $400 credit. At this data
+volume (~122K rows total across both pipelines) you are nowhere close to
+spending it meaningfully; the constraint here was never cost, it was
+learning surface area.
