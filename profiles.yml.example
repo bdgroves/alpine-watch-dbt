@@ -1,0 +1,36 @@
+# Copy to ~/.dbt/profiles.yml (or set DBT_PROFILES_DIR to this repo).
+# NEVER commit the real file — it holds credentials.
+
+alpine_watch:
+  target: dev
+  outputs:
+
+    dev:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"    # e.g. abc12345.us-west-2
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      role: TRANSFORMER
+      database: ALPINE_WATCH
+      warehouse: ALPINE_WH
+      schema: "dbt_brooks"        # your personal dev sandbox
+      threads: 4
+
+      # --- Authentication ---------------------------------------------
+      # Snowflake has been phasing out single-factor password auth.
+      # Key-pair is the durable choice; check current Snowflake docs
+      # before you rely on the password option below.
+      private_key_path: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PATH') }}"
+      private_key_passphrase: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PASSPHRASE', '') }}"
+      # password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"   # legacy fallback
+
+    prod:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      role: TRANSFORMER
+      database: ALPINE_WATCH
+      warehouse: ALPINE_WH
+      schema: "analytics"
+      threads: 8
+      private_key_path: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PATH') }}"
+      private_key_passphrase: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PASSPHRASE', '') }}"

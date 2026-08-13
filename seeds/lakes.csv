@@ -1,0 +1,4 @@
+station_id,lake_name,state_code,mountain_range,latitude,longitude,elevation_ft
+USGS-11266500,EXAMPLE - replace me,CA,Sierra Nevada,37.8651,-119.5383,4000
+USGS-10336660,EXAMPLE - replace me,CA,Sierra Nevada,39.0968,-120.0324,6225
+USGS-14150300,Odell Lake EXAMPLE,OR,Cascades,43.5761,-121.9820,4788

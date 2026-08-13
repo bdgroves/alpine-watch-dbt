@@ -1,0 +1,43 @@
+name: dbt build
+
+on:
+  schedule:
+    # Twice weekly, matching the existing ALPINE-WATCH cadence.
+    - cron: "0 13 * * 1,4"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_PRIVATE_KEY_PATH: ${{ github.workspace }}/key.p8
+      DBT_PROFILES_DIR: ${{ github.workspace }}/ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          cache: true
+
+      - name: Write private key
+        run: |
+          echo "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" > key.p8
+          chmod 600 key.p8
+
+      - run: pixi run deps
+
+      # Fail the run if the loader missed its window. Freshness failures
+      # are usually the FIRST sign a pipeline broke.
+      - name: Source freshness
+        run: pixi run fresh
+
+      # build = run + test + seed + snapshot, in dependency order.
+      # On a PR, --defer against prod state would let you build only
+      # changed models. Worth adding once prod artifacts exist.
+      - name: Build
+        run: pixi run build

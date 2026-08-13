@@ -1,0 +1,33 @@
+version: 2
+
+sources:
+  - name: bronze
+    database: ALPINE_WATCH
+    schema: BRONZE
+    description: >
+      Raw landing zone. Loaded by load/ingest_wqp.py via stage + COPY INTO.
+      Nothing here is ever modified in place - history is preserved so any
+      silver model can be rebuilt from scratch.
+
+    # Freshness is checked against the loader's own timestamp column.
+    # ALPINE-WATCH runs twice weekly, so 4 days = a missed run, 8 = two.
+    loaded_at_field: _loaded_at
+    freshness:
+      warn_after: {count: 4, period: day}
+      error_after: {count: 8, period: day}
+
+    tables:
+      - name: wqp_results_raw
+        description: One row per WQP result record, payload as VARIANT.
+        columns:
+          - name: payload
+            description: Verbatim JSON from the USGS Water Quality Portal.
+          - name: _loaded_at
+            description: Load timestamp - the incremental watermark.
+          - name: _batch_id
+            description: Loader run id, for tracing and targeted backfills.
+
+      - name: wqp_stations_raw
+        description: Monitoring location metadata. Slowly changing.
+        # Station metadata is refreshed rarely; don't alert on it.
+        freshness: null

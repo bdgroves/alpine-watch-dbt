@@ -1,0 +1,10 @@
+target/
+dbt_packages/
+logs/
+.user.yml
+profiles.yml
+*.p8
+.pixi/
+terraform/.terraform/
+terraform/*.tfstate*
+terraform/*.tfvars

@@ -1,0 +1,64 @@
+version: 2
+
+models:
+
+  - name: stg_wqp_results
+    description: Typed, flattened WQP results. One row per measurement.
+    columns:
+      - name: measurement_sk
+        description: Hash of station + date + characteristic + unit.
+        data_tests:
+          - not_null
+      - name: station_id
+        data_tests:
+          - not_null
+      - name: sample_date
+        data_tests:
+          - not_null
+
+  - name: dim_lakes
+    description: The curated 13-lake watchlist.
+    columns:
+      - name: station_id
+        description: Primary key. Joins to fct_lake_measurements.
+        data_tests:
+          - unique
+          - not_null
+      - name: latitude
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: 32
+              max_value: 50
+      - name: longitude
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: -125
+              max_value: -114
+
+  - name: fct_lake_measurements
+    description: >
+      Water quality observations for watchlist lakes. Incremental, merged
+      on measurement_sk with a 3-day lookback for late-arriving lab results.
+    columns:
+      - name: measurement_sk
+        description: Grain of the table. Must be unique after the merge.
+        data_tests:
+          - unique
+          - not_null
+      - name: station_id
+        data_tests:
+          - not_null
+          # Referential integrity: no orphan facts.
+          - relationships:
+              to: ref('dim_lakes')
+              field: station_id
+      - name: unit_code
+        data_tests:
+          - accepted_values:
+              # Fails loudly if WQP starts sending a unit we don't handle.
+              values: ['ug/l', 'mg/l', 'deg C', 'NTU', 'None', 'm']
+              config:
+                severity: warn
+      - name: sample_date
+        data_tests:
+          - not_null

@@ -1,0 +1,41 @@
+name: 'alpine_watch'
+version: '1.0.0'
+config-version: 2
+
+profile: 'alpine_watch'
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+snapshot-paths: ["snapshots"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  alpine_watch:
+    staging:
+      # Staging is cheap, always-fresh SQL over the raw landing tables.
+      # Views cost nothing to store and never go stale.
+      +materialized: view
+      +schema: staging
+    silver:
+      # Conformed, tested, analytics-ready. Tables (or incremental) so
+      # downstream readers don't re-scan raw VARIANT on every query.
+      +materialized: table
+      +schema: silver
+
+seeds:
+  alpine_watch:
+    +schema: reference
+    lakes:
+      +column_types:
+        latitude: float
+        longitude: float
+        elevation_ft: number(38,0)
+
+snapshots:
+  alpine_watch:
+    +target_schema: snapshots

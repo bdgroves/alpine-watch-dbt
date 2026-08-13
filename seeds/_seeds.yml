@@ -1,0 +1,13 @@
+version: 2
+
+seeds:
+  - name: lakes
+    description: >
+      The curated watchlist. THESE ROWS ARE PLACEHOLDERS - swap in the
+      real 13 station identifiers from your ALPINE-WATCH config before
+      the first run, or dim_lakes will filter the fact table to nothing.
+    columns:
+      - name: station_id
+        data_tests:
+          - unique
+          - not_null

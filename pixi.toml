@@ -1,0 +1,21 @@
+[project]
+name = "alpine-watch-dbt"
+channels = ["conda-forge"]
+platforms = ["win-64", "linux-64", "osx-arm64"]
+
+[dependencies]
+python = "3.11.*"
+
+[pypi-dependencies]
+dbt-core = ">=1.9"
+dbt-snowflake = ">=1.9"
+snowflake-connector-python = "*"
+requests = "*"
+
+[tasks]
+deps      = "dbt deps"
+seed      = "dbt seed"
+build     = "dbt build"
+fresh     = "dbt source freshness"
+docs      = "dbt docs generate && dbt docs serve"
+ingest    = "python load/ingest_wqp.py"
