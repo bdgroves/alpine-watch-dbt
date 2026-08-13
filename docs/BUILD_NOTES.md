@@ -195,3 +195,72 @@ Snowflake trial: **30 days from Aug 12, 2026** — $400 credit. At this data
 volume (~122K rows total across both pipelines) you are nowhere close to
 spending it meaningfully; the constraint here was never cost, it was
 learning surface area.
+
+## A real investigation, worth remembering as an example
+
+This is the story worth telling in an interview if asked "walk me through a
+time you found something unexpected in data." It happened in one sitting,
+using nothing but `LAG()`, `PARTITION BY`, and a `WHERE` clause.
+
+**1. Started with a hunch, and it was wrong.** Averaged Merced River
+discharge by hour of day, expecting an evening peak (snowmelt takes hours to
+travel from high elevation to the gage). Instead found a morning peak
+(~8-11am) and evening trough (~8-9pm) at both gages on the river. The actual
+driver is riparian evapotranspiration — streamside vegetation pulls water
+from the shallow water table while photosynthesizing in daylight, dropping
+flow through the afternoon, recovering overnight. Wrong hypothesis, real
+signal, more interesting than the original guess.
+
+**2. Noticed an anomaly rather than smoothing past it.** Both Merced gages
+showed an odd upward blip at hour 17 that broke the otherwise smooth curve.
+Formed a hypothesis: single storm event skewing the average.
+
+**3. Tested the hypothesis with a follow-up query, and it survived — but
+differently than expected.** Isolating the specific dates behind hour 17
+showed four consecutive days (May 15-18) with dramatically elevated flow,
+declining smoothly. Not a storm — the tail end of spring snowmelt recession,
+sitting inside a 90-day window that otherwise captured summer baseflow.
+Lesson: know what regime your window is actually sampling before trusting
+an average across it.
+
+**4. Used `LAG()` to hunt for the sharpest single-step changes anywhere in
+the streamflow data** (the Richards-Baker Flashiness Index concept — how
+"jumpy" a river's flow is). Nearly all the biggest jumps clustered at one
+gage: Tuolumne near Hetch Hetchy, 100-200 cfs in a single 15-minute step.
+
+**5. Formed a second hypothesis — dam-operated release schedule — and killed
+it with data.** Hetch Hetchy Reservoir sits upstream and feeds San Francisco's
+water supply, so a weekday-heavy pattern seemed likely. A day-of-week
+breakdown of big jumps showed no such pattern (Sunday second-highest,
+Thursday and Saturday zero) — hypothesis rejected, and said so rather than
+forcing a story onto a null result.
+
+**6. Looked at the raw shape instead of aggregating further.** Pulled the
+biggest single jump (May 18, 18:30, -201 cfs) at 15-minute resolution: dead
+flat at ~1,045 cfs for over an hour, one instant drop to 839, then
+immediately flat again at a new ~820 cfs plateau. That step-function shape
+(no ramp, no overshoot) rules out weather or snowmelt and points to a
+discrete operational event — a gate or valve change, not tied to a simple
+weekly schedule. Parked there; confirming further would need SFPUC
+reservoir operation records, outside this project's scope.
+
+**The pattern worth reusing**: form a hypothesis → write the smallest query
+that tests it → let a rejected hypothesis be a real answer, not a reason to
+torture the data into agreeing → when aggregates get ambiguous, drop down to
+raw rows and look at the actual shape.
+
+## Snowflake concepts touched in this session
+
+- `LAG()` / `PARTITION BY` / `ORDER BY` — window functions, no self-join needed
+- `QUALIFY` — already embedded in every staging model's dedup logic
+- `CONVERT_TIMEZONE` — UTC to Pacific for solar-time analysis
+- `DATE_TRUNC`, `DAYNAME`, `EXTRACT(hour from ...)` — time bucketing
+- Aggregate + `GROUP BY` rules — `AVG()` alongside a non-aggregated column
+  needs the group by; Snowflake enforces this strictly (hit this twice)
+- `NULL` sort behavior — `LAG()`'s first row per partition is `NULL`, and
+  `NULL` sorts to the top of a `DESC` order by default. Filter it out
+  explicitly rather than assume it'll land at the bottom.
+
+Not yet touched, queued for next time: `CORR()`/statistical functions,
+`ASOF JOIN` (matching the two pipelines' different time grains), `ST_`
+geospatial functions.
