@@ -2,6 +2,7 @@
 
 {{
     config(
+        enabled = false,
         target_schema = 'snapshots',
         unique_key    = 'station_id',
         strategy      = 'check',

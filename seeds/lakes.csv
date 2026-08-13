@@ -1,4 +1,14 @@
-station_id,lake_name,state_code,mountain_range,latitude,longitude,elevation_ft
-USGS-11266500,EXAMPLE - replace me,CA,Sierra Nevada,37.8651,-119.5383,4000
-USGS-10336660,EXAMPLE - replace me,CA,Sierra Nevada,39.0968,-120.0324,6225
-USGS-14150300,Odell Lake EXAMPLE,OR,Cascades,43.5761,-121.9820,4788
+lake_id,lake_name,mountain_range,state_code,elevation_ft,latitude,longitude
+lake_tahoe,Lake Tahoe,Sierra Nevada,CA/NV,6225,39.0968,-120.0324
+fallen_leaf,Fallen Leaf Lake,Sierra Nevada,CA,6377,38.8968,-120.0574
+donner_lake,Donner Lake,Sierra Nevada,CA,5936,39.3196,-120.2296
+mono_lake,Mono Lake,Eastern Sierra,CA,6383,37.9799,-119.0198
+convict_lake,Convict Lake,Sierra Nevada,CA,7583,37.5896,-118.8577
+twin_lakes_bridgeport,Twin Lakes (Bridgeport),Eastern Sierra,CA,7000,38.2010,-119.3510
+lake_chelan,Lake Chelan,North Cascades,WA,1086,47.8418,-120.0245
+diablo_lake,Diablo Lake,North Cascades,WA,1201,48.7154,-121.1376
+lake_cushman,Lake Cushman,Olympics,WA,738,47.4685,-123.2785
+spirit_lake,Spirit Lake,Cascades / St. Helens,WA,3417,46.2754,-122.1413
+crater_lake,Crater Lake,Cascades,OR,6178,42.9446,-122.1090
+odell_lake,Odell Lake,Cascades,OR,4787,43.5568,-122.0054
+waldo_lake,Waldo Lake,Cascades,OR,5414,43.7318,-122.0454

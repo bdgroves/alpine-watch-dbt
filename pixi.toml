@@ -11,6 +11,7 @@ dbt-core = ">=1.9"
 dbt-snowflake = ">=1.9"
 snowflake-connector-python = "*"
 requests = "*"
+dataretrieval = "*"
 
 [tasks]
 deps      = "dbt deps"

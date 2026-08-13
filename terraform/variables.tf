@@ -1,14 +1,20 @@
 variable "snowflake_organization" {
-  description = "Snowflake organization name (SHOW ORGANIZATION ACCOUNTS)."
-  type        = string
+  type = string
 }
 
 variable "snowflake_account" {
-  description = "Snowflake account name within the organization."
-  type        = string
+  type = string
 }
 
 variable "snowflake_user" {
-  description = "User Terraform authenticates as."
-  type        = string
+  type = string
+}
+
+variable "snowflake_private_key_path" {
+  type = string
+}
+
+variable "snowflake_private_key_passphrase" {
+  type      = string
+  sensitive = true
 }

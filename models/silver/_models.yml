@@ -6,10 +6,10 @@ models:
     description: Typed, flattened WQP results. One row per measurement.
     columns:
       - name: measurement_sk
-        description: Hash of station + date + characteristic + unit.
+        description: Hash of lake + station + date + characteristic + unit.
         data_tests:
           - not_null
-      - name: station_id
+      - name: lake_id
         data_tests:
           - not_null
       - name: sample_date
@@ -19,7 +19,7 @@ models:
   - name: dim_lakes
     description: The curated 13-lake watchlist.
     columns:
-      - name: station_id
+      - name: lake_id
         description: Primary key. Joins to fct_lake_measurements.
         data_tests:
           - unique
@@ -45,18 +45,17 @@ models:
         data_tests:
           - unique
           - not_null
-      - name: station_id
+      - name: lake_id
         data_tests:
           - not_null
-          # Referential integrity: no orphan facts.
+          # Referential integrity: every fact must trace to a real lake.
           - relationships:
               to: ref('dim_lakes')
-              field: station_id
+              field: lake_id
       - name: unit_code
         data_tests:
           - accepted_values:
-              # Fails loudly if WQP starts sending a unit we don't handle.
-              values: ['ug/l', 'mg/l', 'deg C', 'NTU', 'None', 'm']
+              values: ['deg C', 'ug/L', 'mg/L', 'm', 'RFU', 'NTU', 'ppb']
               config:
                 severity: warn
       - name: sample_date

@@ -45,6 +45,7 @@ joined as (
 
     select
         s.measurement_sk,
+        s.lake_id,
         s.station_id,
         l.lake_name,
         l.mountain_range,
@@ -64,7 +65,7 @@ joined as (
     from staged s
     -- inner join: the fact table is scoped to the curated watchlist
     inner join {{ ref('dim_lakes') }} l
-        on s.station_id = l.station_id
+        on s.lake_id = l.lake_id
 
 )
 

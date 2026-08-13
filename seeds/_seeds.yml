@@ -2,12 +2,9 @@ version: 2
 
 seeds:
   - name: lakes
-    description: >
-      The curated watchlist. THESE ROWS ARE PLACEHOLDERS - swap in the
-      real 13 station identifiers from your ALPINE-WATCH config before
-      the first run, or dim_lakes will filter the fact table to nothing.
+    description: The 13-lake watchlist, matching bdgroves/Alpine-watch's fetch_lakes.py.
     columns:
-      - name: station_id
+      - name: lake_id
         data_tests:
           - unique
           - not_null
