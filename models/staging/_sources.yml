@@ -31,3 +31,17 @@ sources:
         description: Monitoring location metadata. Slowly changing.
         # Station metadata is refreshed rarely; don't alert on it.
         freshness: null
+
+      - name: streamflow_continuous_raw
+        description: >
+          Continuous (15-min interval) USGS streamgage readings, loaded by
+          load/ingest_streamflow.py. Already normalized to our own schema
+          by the loader - gage_id, parameter_code, unit, datetime_utc,
+          value, qualifier - not a raw pass-through of API columns.
+        columns:
+          - name: payload
+            description: Normalized JSON, one record per reading.
+          - name: _loaded_at
+            description: Load timestamp - the incremental watermark.
+          - name: _batch_id
+            description: Loader run id.

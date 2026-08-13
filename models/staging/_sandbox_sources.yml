@@ -1,0 +1,11 @@
+version: 2
+
+sources:
+  - name: bronze_sandbox
+    database: ALPINE_WATCH
+    schema: BRONZE
+    tables:
+      - name: sierra_gages_raw
+        description: 14 Sierra gages with NLDI basin polygons as WKT.
+      - name: sierra_daily_flow_raw
+        description: Daily mean discharge 1990-2026, VARIANT payload.

@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: bronze_lidar
+    database: ALPINE_WATCH
+    schema: BRONZE
+    tables:
+      - name: derived_streams_raw
+        description: LiDAR-derived stream network, loaded by lidar/load_streams.py.

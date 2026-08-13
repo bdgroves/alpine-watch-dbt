@@ -1,0 +1,55 @@
+version: 2
+
+models:
+
+  - name: stg_sierra_gages
+    columns:
+      - name: gage_id
+        data_tests: [unique, not_null]
+
+  - name: stg_sierra_daily_flow
+    columns:
+      - name: flow_sk
+        data_tests: [unique, not_null]
+      - name: gage_id
+        data_tests: [not_null]
+      - name: water_year
+        data_tests: [not_null]
+
+  - name: dim_sierra_gages
+    description: Gage dimension with basin geometry and shape metrics.
+    columns:
+      - name: gage_id
+        data_tests: [unique, not_null]
+      - name: river_system
+        data_tests:
+          - accepted_values:
+              values: ['Merced', 'Tuolumne', 'Stanislaus', 'Other']
+      - name: basin_area_sqmi
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 2000
+
+  - name: fct_sierra_daily_flow
+    description: Daily discharge with LAG-derived change and rolling mean.
+    columns:
+      - name: flow_sk
+        data_tests: [unique, not_null]
+      - name: gage_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_sierra_gages')
+              field: gage_id
+
+  - name: fct_water_year_summary
+    description: Per-gage, per-water-year rollup with R-B flashiness index.
+    columns:
+      - name: water_year
+        data_tests: [not_null]
+      - name: rb_flashiness_index
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 5

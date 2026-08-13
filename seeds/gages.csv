@@ -1,0 +1,8 @@
+gage_id,gage_name,river,mountain_range,state_code,role
+11264500,Merced R at Happy Isles Bridge,Merced,Sierra Nevada,CA,alpine_anchor
+11266500,Merced R at Pohono Bridge,Merced,Sierra Nevada,CA,valley_comparison
+11276500,Tuolumne R near Hetch Hetchy,Tuolumne,Sierra Nevada,CA,alpine_anchor
+11290000,Tuolumne R at Modesto,Tuolumne,Sierra Nevada,CA,valley_comparison
+11298000,S Fork Stanislaus R near Long Barn,Stanislaus,Sierra Nevada,CA,alpine_anchor
+11303000,Stanislaus R at Ripon,Stanislaus,Sierra Nevada,CA,valley_comparison
+12082500,Nisqually River near National,Nisqually,Cascades,WA,alpine_anchor

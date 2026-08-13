@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: stg_derived_streams
+    columns:
+      - name: segment_id
+        data_tests:
+          - not_null
+          - unique
+  - name: fct_gage_stream_validation
+    columns:
+      - name: distance_m
+        data_tests:
+          - not_null

@@ -1,0 +1,48 @@
+version: 2
+
+models:
+
+  - name: stg_streamflow
+    description: Typed, deduped continuous streamgage readings.
+    columns:
+      - name: reading_sk
+        data_tests:
+          - not_null
+      - name: gage_id
+        data_tests:
+          - not_null
+      - name: reading_ts
+        data_tests:
+          - not_null
+
+  - name: dim_gages
+    description: The 6 Sierra Nevada streamgages - alpine anchor + valley comparison per river.
+    columns:
+      - name: gage_id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: fct_streamflow
+    description: >
+      Continuous discharge/gage-height/temperature readings. Incremental,
+      merged on reading_sk with a 7-day lookback for provisional-to-approved
+      revisions.
+    columns:
+      - name: reading_sk
+        data_tests:
+          - unique
+          - not_null
+      - name: gage_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref("dim_gages")
+              field: gage_id
+      - name: unit
+        data_tests:
+          - accepted_values:
+              values: ["cfs", "ft", "degC"]
+      - name: reading_ts
+        data_tests:
+          - not_null

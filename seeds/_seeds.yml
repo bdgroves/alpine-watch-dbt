@@ -8,3 +8,11 @@ seeds:
         data_tests:
           - unique
           - not_null
+
+  - name: gages
+    description: The 6 Sierra Nevada streamgages.
+    columns:
+      - name: gage_id
+        data_tests:
+          - unique
+          - not_null

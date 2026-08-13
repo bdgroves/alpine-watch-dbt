@@ -12,6 +12,10 @@ dbt-snowflake = ">=1.9"
 snowflake-connector-python = "*"
 requests = "*"
 dataretrieval = "*"
+py3dep = "*"
+pynhd = "*"
+rioxarray = "*"
+geopandas = "*"
 
 [tasks]
 deps      = "dbt deps"
@@ -20,3 +24,33 @@ build     = "dbt build"
 fresh     = "dbt source freshness"
 docs      = "dbt docs generate && dbt docs serve"
 ingest    = "python load/ingest_wqp.py"
+
+[tasks.ingest-streamflow]
+cmd = "python load/ingest_streamflow.py"
+
+[tasks.get-dem]
+cmd = "python lidar/get_nisqually_dem.py"
+
+[tasks.load-streams]
+cmd = "python lidar/load_streams.py"
+
+[tasks.discover-gages]
+cmd = "python fire/discover_gages.py"
+
+[tasks.check-coverage]
+cmd = "python fire/check_coverage.py"
+
+[tasks.fetch-fires]
+cmd = "python fire/fetch_perimeters.py"
+
+[tasks.check-burn]
+cmd = "python fire/check_gage_in_burn.py"
+
+[tasks.basin-overlap]
+cmd = "python fire/basin_burn_overlap.py"
+
+[tasks.find-records]
+cmd = "python fire/find_long_records.py"
+
+[tasks.load-sandbox]
+cmd = "python fire/load_sandbox.py"
