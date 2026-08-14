@@ -264,3 +264,68 @@ raw rows and look at the actual shape.
 Not yet touched, queued for next time: `CORR()`/statistical functions,
 `ASOF JOIN` (matching the two pipelines' different time grains), `ST_`
 geospatial functions.
+
+## The LiDAR side-quest: DEM to validated stream network to Snowflake
+
+Sparked by the Weyerhaeuser water-mapping parallel - their team derives
+stream channels from LiDAR and validates against ground truth. Built the
+same pipeline at small scale, end to end, in one session.
+
+**1. Skipped the slow portal, went straight to Python.** The WA LiDAR
+Portal's a real, current dataset, but downloading through it was too slow
+for iterating. USGS 3DEP already incorporates WA DNR's own LiDAR flights
+into its national seamless coverage - same underlying data, reachable via
+`py3dep` (part of the same HyRiver ecosystem as `dataretrieval`, already
+in use). Fetched a 10m DEM around the Nisqually gage in seconds instead of
+minutes of map-clicking.
+
+**2. GRASS `r.watershed`** did fill-sinks, flow-direction, and
+flow-accumulation in a single call - no manual conditioning needed, no
+sink-fill failures.
+
+**3. Real debugging chase on stream extraction.** First `r.stream.extract`
+output rendered as a mess of circles in every screenshot. Chased two wrong
+hypotheses in a row (vector export type parameter, then QGIS default
+symbology) before checking the actual feature geometry directly with
+`get_layer_features` - which showed the layer genuinely mixes `Point`
+"start" markers and real `LineString` segments together, standard GRASS
+topological export behavior. Fixed with `native:extractbyexpression`
+(`geometry_type($geometry) = 'Line'`), pulling 489 clean line segments out
+of 999 mixed features. Lesson: when a screenshot doesn't match expectation,
+inspect the data directly rather than iterate on guesses.
+
+**4. Validated in QGIS first.** `native:joinbynearest` between the real
+gage point and the derived stream lines: distance came back in **degrees**
+(inherited the point layer's CRS), converted by hand to real meters:
+**~62.3m (205 ft)** between the LiDAR-derived channel and the actual
+surveyed USGS gage location. For a 10m DEM, that's about as accurate as
+this method gets.
+
+**5. Closed the loop into Snowflake.** Reprojected the 489 segments from
+EPSG:5070 (Albers, the DEM's native output CRS) to EPSG:4326 before
+loading - Snowflake's `GEOGRAPHY` type assumes WGS84, and skipping this
+step would have silently produced nonsense coordinates. Loaded via simple
+parameterized `INSERT` (489 rows doesn't earn the `COPY INTO` bulk-load
+setup cost the other loaders use). Re-ran the same distance validation as
+`ST_DISTANCE` in dbt - geodesic meters natively, no manual conversion this
+time, a genuine practical edge over the QGIS planar join.
+
+## New Snowflake/dbt concepts from the LiDAR work
+
+- `GEOGRAPHY` type, `TO_GEOGRAPHY()`, `ST_MAKEPOINT()`, `ST_DISTANCE()` -
+  the geospatial functions queued since the very first session
+- `ST_ISVALID()` as a dbt test - geometry validity, a genuinely new test
+  category beyond the value-based tests used everywhere else
+- A static, non-time-series bronze table (`create or replace`, no
+  incremental logic) - not every source needs the watermark/merge pattern
+  the other two pipelines use
+- CRS reprojection as a correctness step, not an afterthought - the single
+  easiest way to silently corrupt geospatial data end to end
+
+## Real GIS/QGIS lesson, worth remembering independent of Snowflake
+
+When a processing result looks wrong in a rendered preview, the fast path
+isn't to keep guessing at parameters - it's to pull actual feature
+attributes and geometry directly (`get_layer_features` with
+`include_geometry=true`) and look at ground truth. Two wrong hypotheses
+got ruled out in the time it took to run one direct query.

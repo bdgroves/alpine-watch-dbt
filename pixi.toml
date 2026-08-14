@@ -66,3 +66,6 @@ cmd = "python forest/load_fia.py"
 
 [tasks.export-qgis]
 cmd = "python forest/export_for_qgis.py"
+
+[tasks.get-boundaries]
+cmd = "python forest/get_boundaries.py"
