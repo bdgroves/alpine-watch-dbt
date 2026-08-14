@@ -1,0 +1,56 @@
+version: 2
+
+models:
+
+  - name: stg_fia_plot
+    columns:
+      - name: plot_cn
+        data_tests: [unique, not_null]
+
+  - name: stg_fia_cond
+    columns:
+      - name: cond_cn
+        data_tests: [unique, not_null]
+      - name: plot_cn
+        data_tests: [not_null]
+
+  - name: stg_fia_tree
+    columns:
+      - name: tree_cn
+        data_tests: [unique, not_null]
+      - name: plot_cn
+        data_tests: [not_null]
+
+  - name: dim_fia_species
+    columns:
+      - name: species_code
+        data_tests: [unique, not_null]
+      - name: wood_type
+        data_tests:
+          - accepted_values:
+              values: ['Softwood', 'Hardwood']
+
+  - name: dim_fia_plot
+    columns:
+      - name: plot_cn
+        data_tests: [unique, not_null]
+      - name: elevation_band
+        data_tests:
+          - accepted_values:
+              values: ['Lowland (<1000 ft)', 'Montane (1000-3000 ft)', 'Upper montane (3000-5000 ft)', 'Subalpine (>5000 ft)']
+
+  - name: fct_fia_tree
+    description: 531K tree measurements joined to plot and species.
+    columns:
+      - name: tree_cn
+        data_tests: [unique, not_null]
+      - name: plot_cn
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_fia_plot')
+              field: plot_cn
+      - name: tree_status
+        data_tests:
+          - accepted_values:
+              values: ['Live', 'Dead', 'Removed', 'No status', 'Unknown']

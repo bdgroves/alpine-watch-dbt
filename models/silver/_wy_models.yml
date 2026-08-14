@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: fct_plot_timber_profile
+    description: >
+      Plot-level timber assessment - per-acre biomass, carbon, mortality,
+      sawtimber stems, and stand stage. The mappable product.
+    columns:
+      - name: plot_cn
+        data_tests: [unique, not_null]
+      - name: pct_dead
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+  - name: fct_growth_by_site
+    description: >
+      Measured annual diameter growth by species and site condition,
+      from remeasurement pairs.
+    columns:
+      - name: mean_annual_growth_in
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: -0.5
+              max_value: 2

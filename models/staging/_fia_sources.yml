@@ -1,0 +1,17 @@
+version: 2
+
+sources:
+  - name: bronze_fia
+    database: ALPINE_WATCH
+    schema: BRONZE
+    description: >
+      Washington FIA (Forest Inventory and Analysis), loaded as typed
+      columns rather than VARIANT - CSV source with a stable documented
+      schema, unlike the JSON API feeds elsewhere in this project.
+    tables:
+      - name: fia_wa_plot_raw
+        description: 23,099 plot visits with fuzzed coordinates.
+      - name: fia_wa_cond_raw
+        description: 30,486 conditions. Multiple per plot where boundaries split it.
+      - name: fia_wa_tree_raw
+        description: 531,490 tree measurements, 2001-2022.

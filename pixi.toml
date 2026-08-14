@@ -54,3 +54,15 @@ cmd = "python fire/find_long_records.py"
 
 [tasks.load-sandbox]
 cmd = "python fire/load_sandbox.py"
+
+[tasks.scope-fia]
+cmd = "python forest/scope_fia.py"
+
+[tasks.get-species]
+cmd = "python forest/get_species.py"
+
+[tasks.load-fia]
+cmd = "python forest/load_fia.py"
+
+[tasks.export-qgis]
+cmd = "python forest/export_for_qgis.py"

@@ -1,0 +1,58 @@
+SPCD,COMMON_NAME,GENUS,SPECIES,SPECIES_SYMBOL,E_SPGRPCD,WOODLAND,SFTWD_HRDWD
+11,Pacific silver fir,Abies,amabilis,ABAM,9.0,N,S
+15,white fir,Abies,concolor,ABCO,9.0,N,S
+17,grand fir,Abies,grandis,ABGR,9.0,N,S
+19,subalpine fir,Abies,lasiocarpa,ABLA,9.0,N,S
+22,noble fir,Abies,procera,ABPR,9.0,N,S
+42,Alaska yellow-cedar,Chamaecyparis,nootkatensis,CHNO,9.0,N,S
+64,western juniper,Juniperus,occidentalis,JUOC,9.0,N,S
+72,subalpine larch,Larix,lyallii,LALY,9.0,N,S
+73,western larch,Larix,occidentalis,LAOC,9.0,N,S
+92,Brewer spruce,Picea,breweriana,PIBR,9.0,N,S
+93,Engelmann spruce,Picea,engelmannii,PIEN,9.0,N,S
+98,Sitka spruce,Picea,sitchensis,PISI,9.0,N,S
+101,whitebark pine,Pinus,albicaulis,PIAL,9.0,N,S
+103,knobcone pine,Pinus,attenuata,PIAT,9.0,N,S
+108,lodgepole pine,Pinus,contorta,PICO,9.0,N,S
+119,western white pine,Pinus,monticola,PIMO3,9.0,N,S
+122,ponderosa pine,Pinus,ponderosa,PIPO,9.0,N,S
+202,Douglas-fir,Pseudotsuga,menziesii,PSME,9.0,N,S
+211,redwood,Sequoia,sempervirens,SESE3,9.0,N,S
+212,giant sequoia,Sequoiadendron,giganteum,SEGI2,9.0,N,S
+231,Pacific yew,Taxus,brevifolia,TABR2,9.0,N,S
+242,western redcedar,Thuja,plicata,THPL,9.0,N,S
+263,western hemlock,Tsuga,heterophylla,TSHE,9.0,N,S
+264,mountain hemlock,Tsuga,mertensiana,TSME,9.0,N,S
+299,unknown dead conifer,Tree,evergreen,2TE,9.0,N,S
+312,bigleaf maple,Acer,macrophyllum,ACMA3,43.0,N,H
+313,boxelder,Acer,negundo,ACNE2,41.0,N,H
+320,Norway maple,Acer,platanoides,ACPL,31.0,N,H
+321,Rocky Mountain maple,Acer,glabrum,ACGL,48.0,Y,H
+351,red alder,Alnus,rubra,ALRU2,43.0,N,H
+352,white alder,Alnus,rhombifolia,ALRH2,43.0,N,H
+361,Pacific madrone,Arbutus,menziesii,ARME,43.0,N,H
+374,water birch,Betula,occidentalis,BEOC2,41.0,N,H
+375,paper birch,Betula,papyrifera,BEPA,41.0,N,H
+431,"giant chinkapin, golden chinkapin",Chrysolepis,chrysophylla,CHCHC4,43.0,N,H
+475,curlleaf mountain-mahogany,Cercocarpus,ledifolius,CELE3,48.0,Y,H
+492,Pacific dogwood,Cornus,nuttallii,CONU4,43.0,N,H
+542,Oregon ash,Fraxinus,latifolia,FRLA,43.0,N,H
+600,walnut spp.,Juglans,spp.,JUGLA,41.0,N,H
+603,northern California black walnut,Juglans,hindsii,JUHI,43.0,N,H
+660,apple spp.,Malus,spp.,MALUS,43.0,N,H
+661,Oregon crab apple,Malus,fusca,MAFU,43.0,N,H
+746,quaking aspen,Populus,tremuloides,POTR5,37.0,N,H
+747,black cottonwood,Populus,balsamifera,POBAT,37.0,N,H
+760,Prunus,Prunus,spp.,PRUNU,43.0,N,H
+763,chokecherry,Prunus,virginiana,PRVI,43.0,N,H
+768,bitter cherry,Prunus,emarginata,PREM,43.0,N,H
+771,sweet cherry,Prunus,avium,PRAV,43.0,N,H
+773,European plum,Prunus,domestica,PRDO,43.0,N,H
+815,Oregon white oak,Quercus,garryana,QUGA4,43.0,N,H
+901,black locust,Robinia,pseudoacacia,ROPS,42.0,N,H
+920,willow spp.,Salix,spp.,SALIX,43.0,N,H
+927,white willow,Salix,alba,SAAL2,41.0,N,H
+998,unknown dead hardwood,Tree,broadleaf,2TB,43.0,N,H
+999,other or unknown live tree,Tree,unknown,2TREE,43.0,N,H
+5146,vine maple,Acer,circinatum,ACCI,55.0,N,H
+7454,English holly,Ilex,aquifolium,ILAQ80,54.0,N,H
