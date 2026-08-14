@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: stg_wa_fires
+    columns:
+      - name: object_id
+        data_tests: [unique, not_null]
+      - name: fire_year
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 1900
+              max_value: 2026
+
+  - name: dim_wa_fires
+    columns:
+      - name: fire_id
+        data_tests: [unique, not_null]
+      - name: size_class
+        data_tests:
+          - accepted_values:
+              values: ['Megafire (100k+ ac)', 'Large (10k-100k ac)', 'Moderate (1k-10k ac)', 'Small (100-1k ac)', 'Minor (<100 ac)']

@@ -69,3 +69,13 @@ cmd = "python forest/export_for_qgis.py"
 
 [tasks.get-boundaries]
 cmd = "python forest/get_boundaries.py"
+
+[tasks.get-wa-fires]
+cmd = "python fire/get_wa_fires.py"
+
+[tasks.load-fires]
+cmd = "python fire/load_fires.py"
+
+
+[tasks.export-fire-qgis]
+cmd = "python fire/export_fire_qgis.py"

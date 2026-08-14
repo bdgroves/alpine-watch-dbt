@@ -1,0 +1,12 @@
+version: 2
+
+sources:
+  - name: bronze_fire
+    database: ALPINE_WATCH
+    schema: BRONZE
+    tables:
+      - name: wa_fire_perimeters_raw
+        description: >
+          4,921 NIFC InterAgencyFirePerimeterHistory records intersecting
+          Washington. Raw - includes pre-modern reconstructions, duplicate
+          agency submissions, and a 9999 null sentinel in fire_year.
